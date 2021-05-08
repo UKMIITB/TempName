@@ -142,26 +142,6 @@ def GetDetailedStats(chatDataList):
     return (AvgMsgPerDay, AvgCharPerMsg, AvgCharPerDay, LenLongestMsg, AvgWordsPerMsg, AvgWordsPerDay, AvgMediaPerDay)
 
 
-def extractDomainName(line):
-    '''This function extracts and returns domain name of url 
-    from the given sentence passed as parameter
-    If no url is present, it returns None'''
-
-    # if url is present, extracting till first '/' after https
-    link = re.search("https://(.+?)/", line)
-
-    if link is None:
-        return None
-
-    link = link.group(1)
-
-    linkWords = link.split('.')
-
-    if len(linkWords) > 2:  # first word mostly like is www
-        return linkWords[1]
-    else:
-        return linkWords[0]  # first word itself is the domain name
-
 
 def GetIndividualDataDistribution(chatDataList):
     '''
@@ -260,6 +240,28 @@ def getDayWisePersonWiseStats(chatDataList):
 
     return DayMemberStats
 
+
+def extractDomainName(line):
+    '''This function extracts and returns domain name of url 
+    from the given sentence passed as parameter
+    If no url is present, it returns None'''
+
+    # if url is present, extracting till first '/' after https
+    link = re.search("https://(.+?)/", line)
+
+    if link is None:
+        return None
+
+    link = link.group(1)
+
+    linkWords = link.split('.')
+
+    if len(linkWords) > 2:  # first word mostly like is www
+        return linkWords[1]
+    else:
+        return linkWords[0]  # first word itself is the domain name
+
+        
 
 def getAllLinksStat(filename):
     '''This function takes filename as input parameter
