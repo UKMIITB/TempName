@@ -261,12 +261,10 @@ def getDayWisePersonWiseStats(chatDataList):
     return DayMemberStats
 
 
-def getAllLinksStat(filename):
-    '''This function takes filename as input parameter
-    and returns a map with domain name as key & count as its value'''
+def getAllLinksStat(allChatDataSimplified):
+    '''Input: output from getSimplifiedChatData
+    Output: returns a map with domain name as key & count as its value'''
 
-    allChatDataSimplified = getSimplifiedChatData(
-        filename)  # Getting simplified data
     allLinksStat = {}  # variable to store all links count
 
     for eachChatData in allChatDataSimplified:
@@ -281,3 +279,39 @@ def getAllLinksStat(filename):
                 allLinksStat[domainName] = 1
 
     return allLinksStat
+
+
+def getmentionNumber(message):
+    '''Input: message
+    Output: list of number which was mentioned
+    If no mentions, then list is empty'''
+
+    mentions = re.findall("@[0-9]{2}([0-9]{10})", message)
+    return mentions
+
+
+def getMentionStat(chatDataList):
+    '''Input: output of getSimplifiedChatData
+    Output: dictionary with key -> person's name
+    value -> dictionary with number as key, count as value'''
+
+    mentionStat = {}
+
+    for eachChatData in chatDataList:
+
+        name = eachChatData[2].split()[0]
+        message = eachChatData[-1]
+
+        if name not in mentionStat:
+            mentionStat[name] = {}
+
+        mentions = getmentionNumber(message)
+
+        if len(mentions) != 0:
+            for eachMention in mentions:
+                if eachMention not in mentionStat[name]:
+                    mentionStat[name][eachMention] = 1
+                else:
+                    mentionStat[name][eachMention] = mentionStat[name][eachMention] + 1
+
+    return mentionStat
