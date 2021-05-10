@@ -8,4 +8,4 @@
 
 
 ### Required python packages:
-1. 
+1. stylecloud
