@@ -8,4 +8,5 @@
 
 
 ### Required python packages:
-1. stylecloud
+1. stylecloud [pip3 install stylecloud]
+2. stop_words [pip install stop_words]
