@@ -1,5 +1,10 @@
 import re
+import os
 from datetime import datetime
+
+import stylecloud
+from stop_words import get_stop_words
+from wordcloud import STOPWORDS
 
 fileName = 'MachauWingiesChatData.txt'
 
@@ -267,8 +272,10 @@ def getAllLinksStat(filename):
     '''This function takes filename as input parameter
     and returns a map with domain name as key & count as its value'''
 
-    allChatDataSimplified = getSimplifiedChatData(
-        filename)  # Getting simplified data
+def getAllLinksStat(allChatDataSimplified):
+    '''Input: output from getSimplifiedChatData
+    Output: returns a map with domain name as key & count as its value'''
+
     allLinksStat = {}  # variable to store all links count
 
     for eachChatData in allChatDataSimplified:
@@ -283,3 +290,105 @@ def getAllLinksStat(filename):
                 allLinksStat[domainName] = 1
 
     return allLinksStat
+
+
+def getMentionNumber(message):
+    '''Input: message
+    Output: list of number which was mentioned
+    If no mentions, then list is empty'''
+
+    mentions = re.findall("@[0-9]{2}([0-9]{10})", message)
+    return mentions
+
+
+def getMentionStat(chatDataList):
+    '''Input: output of getSimplifiedChatData function
+    Output: dictionary with key -> person's name
+    value -> dictionary with number as key, count as value'''
+
+    mentionStat = {}
+
+    for eachChatData in chatDataList:
+
+        name = eachChatData[2].split()[0]
+        message = eachChatData[-1]
+
+        if name not in mentionStat:
+            mentionStat[name] = {}
+
+        mentions = getMentionNumber(message)
+
+        if len(mentions) != 0:
+            for eachMention in mentions:
+                if eachMention not in mentionStat[name]:
+                    mentionStat[name][eachMention] = 1
+                else:
+                    mentionStat[name][eachMention] = mentionStat[name][eachMention] + 1
+
+    return mentionStat
+
+
+def getStopWordList():
+    '''This function returns a list of StopWords as list to be used in wordcloud making'''
+    stopWords = get_stop_words('english')
+    stopWordFile = open('StopWords.txt', 'r')
+
+    while True:
+        line = stopWordFile.readline()
+
+        if not line:
+            break
+
+        line = line.strip()
+        line = re.sub("\n", "", line)
+        stopWords.append(line)
+
+    stopWords = list(set(stopWords))
+    stopWords.extend(list(set(STOPWORDS)))
+
+    return stopWords
+
+
+def getWordCloud(chatDataList, filename, stopWordList):
+    '''Input: chatDataList and filename for output image, 
+    Output: adds a png file by the name filenameWordCloud in source directory'''
+
+    file = open('tempData.txt', 'w')
+
+    for eachChatData in chatDataList:
+
+        message = eachChatData[-1]
+        messageList = message.split()
+        messageList = [word for word in messageList if len(word) > 3]
+
+        message = " ".join(messageList)+" "
+        file.write(message)
+
+    file.close()
+
+    stylecloud.gen_stylecloud(file_path='tempData.txt', icon_name='fas fa-bread-slice',
+                              output_name=filename+'WordCloud.png', custom_stopwords=stopWordList, collocations=True,
+                              size=(2048, 2048))
+
+    # deleting the temp file
+    if os.path.exists("tempData.txt"):
+        os.remove("tempData.txt")
+
+
+def getAllWordCloud(chatDataList):
+    '''Input: output of getSimplifiedChatData function
+    Output: adds a png file for all members by their first name & group data in the source directory
+    fileName format -> nameWordCloud.png, groupWordCloud.png
+
+    This is a time intensive function. May take upto several minutes for each participants'''
+
+    stopWordList = getStopWordList()
+
+    # Generating group data's word cloud
+    getWordCloud(chatDataList, 'group', stopWordList)
+
+    individualChatDataList = GetIndividualDataDistribution(chatDataList)
+
+    for individualParticipant in individualChatDataList:  # Word cloud for individual participants
+        getWordCloud(
+            individualChatDataList[individualParticipant], individualParticipant, stopWordList)
