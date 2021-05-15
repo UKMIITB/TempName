@@ -7,6 +7,7 @@ from stop_words import get_stop_words
 from wordcloud import STOPWORDS
 
 fileName = 'MachauWingiesChatData.txt'
+conversationThreshold = 30  # minutes
 
 
 def getDateTimeNameMessage(line):
@@ -14,7 +15,7 @@ def getDateTimeNameMessage(line):
     and returns a tuple in the following order
     (date, time, name, message)
     date as datetime type
-    time in hh:mm am/pm format as string type'''
+    time as datetime object'''
 
     date = re.search("[0-9]{2}/[0-9]{2}/[0-9]{4}", line)
     time = re.search("[0-9]+:[0-9]{2}\s[ap]m", line)
@@ -23,7 +24,7 @@ def getDateTimeNameMessage(line):
 
     if date is not None and time is not None and name is not None and message is not None:   # This line contains a new data
         date = datetime.strptime(date.group(0), '%d/%m/%Y')
-        time = time.group(0)
+        time = datetime.strptime(time.group(0), '%I:%M %p')
         name = name.group(1)
         message = message.group(1)
 
@@ -48,6 +49,9 @@ def getSimplifiedChatData(filename):
     and returns a list of all chat data
     with each value being a tuple in the order
     (date, time, name, message)
+
+    date is datetime object
+    time is datetime object
 
     This function merges large messages which come in new line in chat data text file'''
 
@@ -77,17 +81,15 @@ def getSimplifiedChatData(filename):
     return chatDataList
 
 
-def getAllParticipantsName(filename, includeCompleteName=False):
+def getAllParticipantsName(allChatDataSimplified, includeCompleteName=False):
     '''This function returns a list of names of all the group participants
     Requirement is that they should have posted atleast a single message
     Name returned is the name saved in persons whose data has been shared
 
-    Pass the filename to this function
+    Input: output of getSimplifiedChatData
     Optionally it accepts includeCompleteName parameter which if true returns complete name
     else just first name is included'''
 
-    allChatDataSimplified = getSimplifiedChatData(
-        filename)  # Getting simplified data
     allChatParticipants = set()  # varible of set type to store all participants name
 
     for eachChatData in allChatDataSimplified:
@@ -386,3 +388,48 @@ def getAllWordCloud(chatDataList):
     for individualParticipant in individualChatDataList:  # Word cloud for individual participants
         getWordCloud(
             individualChatDataList[individualParticipant], individualParticipant, stopWordList)
+
+
+def getContinuousConversationStat(chatDataList):
+    '''Input: output from getSimplifiedChatData function
+    Output: a tuple(value1, value2)
+    value1 -> A dictionary with participant name as key & conversation participated as value
+    value2 -> total number of continuous conversations'''
+
+    conversationCount = 0
+    continuousConversationStat = {}
+
+    allParticipantsName = getAllParticipantsName(chatDataList)
+    for participants in allParticipantsName:  # initialisation
+        continuousConversationStat[participants] = 0
+
+    prevDateTime = datetime.combine(
+        chatDataList[0][0].date(), chatDataList[0][1].time())
+    currentParticipants = set()
+    isConversationOngoing = False
+
+    for eachChatData in chatDataList:
+        date = eachChatData[0]
+        time = eachChatData[1]
+        name = eachChatData[2].split()[0]
+        dateTime = datetime.combine(date.date(), time.time())
+
+        minuteDifference = (dateTime - prevDateTime).total_seconds() / 60
+
+        if minuteDifference < conversationThreshold:
+            currentParticipants.add(name)
+
+            if not isConversationOngoing:
+                isConversationOngoing = True
+                conversationCount = conversationCount + 1
+
+        else:
+            isConversationOngoing = False
+
+            for participants in currentParticipants:
+                continuousConversationStat[participants] = continuousConversationStat[participants] + 1
+            currentParticipants.clear()
+
+        prevDateTime = dateTime  # updating prevDateTime for next iteration
+
+    return (continuousConversationStat, conversationCount)
