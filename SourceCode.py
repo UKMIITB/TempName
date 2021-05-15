@@ -7,7 +7,6 @@ from stop_words import get_stop_words
 from wordcloud import STOPWORDS
 
 fileName = 'MachauWingiesChatData.txt'
-conversationThreshold = 30  # minutes
 
 
 def getDateTimeNameMessage(line):
@@ -390,11 +389,12 @@ def getAllWordCloud(chatDataList):
             individualChatDataList[individualParticipant], individualParticipant, stopWordList)
 
 
-def getContinuousConversationStat(chatDataList):
+def getContinuousConversationStat(chatDataList, conversationThreshold=30):
     '''Input: output from getSimplifiedChatData function
     Output: a tuple(value1, value2)
     value1 -> A dictionary with participant name as key & conversation participated as value
-    value2 -> total number of continuous conversations'''
+    value2 -> total number of continuous conversations
+    key is sorted by value'''
 
     conversationCount = 0
     continuousConversationStat = {}
@@ -428,8 +428,16 @@ def getContinuousConversationStat(chatDataList):
 
             for participants in currentParticipants:
                 continuousConversationStat[participants] = continuousConversationStat[participants] + 1
+
             currentParticipants.clear()
 
         prevDateTime = dateTime  # updating prevDateTime for next iteration
+
+    for eachParticipant in continuousConversationStat:
+        continuousConversationStat[eachParticipant] = round(
+            ((continuousConversationStat[eachParticipant]/conversationCount) * 100), 2)
+
+    continuousConversationStat = dict(
+        sorted(continuousConversationStat.items(), key=lambda item: item[1]))
 
     return (continuousConversationStat, conversationCount)
